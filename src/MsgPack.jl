@@ -41,6 +41,17 @@ const MAP_32   = 0xdf
 
 const INT_FN   = 0xe0 # - 0xff
 
+"""
+The Compat library doesn't provide take!(::IOBuffer)  or xor() in Julia 0.3,
+so we need to fix that compatibility ourselves.
+"""
+@static if VERSION < v"0.4"
+  take_compat!(s::IOBuffer) = takebuf_array(s)
+  xor(a, b) = a $ b
+else
+  take_compat!(s::IOBuffer) = take!(s)
+end
+
 immutable Ext
     typecode::Int8
     data::Vector{UInt8}
@@ -62,7 +73,7 @@ end
 function extserialize(t::Integer, d)
     i = IOBuffer()
     serialize(i, d)
-    return Ext(t, take!(i))
+    return Ext(t, take_compat!(i))
 end
 
 # return (typecode, object) from an Ext where Ext.data is a serialized object
@@ -174,7 +185,7 @@ end
 pack(v) = begin
     s = IOBuffer()
     pack(s, v)
-    take!(s)
+    take_compat!(s)
 end
 
 
